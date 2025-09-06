@@ -45,4 +45,4 @@ lerna-debug.log*
 ffmpeg/
 
 # Uploads
-uploads/
+uploads/*
