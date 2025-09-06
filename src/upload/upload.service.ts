@@ -1,14 +1,20 @@
+import * as ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import * as ffmpeg from 'fluent-ffmpeg';
-import * as fs from 'fs';
 import * as path from 'path';
+import { PrismaService } from '../prisma/prisma.service';
+import { StorageFactory } from '../storage/storage.factory';
+
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 @Injectable()
 export class UploadService {
   private readonly logger = new Logger(UploadService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storageFactory: StorageFactory,
+  ) {}
 
   async processVideo(
     file: Express.Multer.File,
@@ -24,8 +30,32 @@ export class UploadService {
         },
       });
 
+      // Store video file using storage service
+      const storageService = this.storageFactory.getStorageService();
+      const videoFile = await storageService.upload(file, {
+        folder: 'videos',
+        metadata: { meetingId: meeting.id, type: 'video' },
+      });
+
       // Extract audio from video
       const audioPath = await this.extractAudio(file.path);
+
+      // Store audio file using storage service
+      const audioFile = await storageService.upload(
+        {
+          ...file,
+          path: audioPath,
+          filename: path.basename(audioPath),
+        } as Express.Multer.File,
+        {
+          folder: 'audio',
+          metadata: {
+            meetingId: meeting.id,
+            type: 'audio',
+            sourceVideo: videoFile.path,
+          },
+        },
+      );
 
       this.logger.log(
         `Video processed successfully. Meeting ID: ${meeting.id}`,
@@ -33,9 +63,12 @@ export class UploadService {
 
       return {
         meetingId: meeting.id,
-        fileId: file.filename,
+        fileId: videoFile.filename,
         originalName: file.originalname,
-        audioPath: audioPath,
+        videoPath: videoFile.path,
+        audioPath: audioFile.path,
+        videoUrl: videoFile.url,
+        audioUrl: audioFile.url,
         message: 'Video uploaded and audio extracted successfully',
       };
     } catch (error) {
@@ -64,20 +97,100 @@ export class UploadService {
     });
   }
 
-  async getFileInfo(fileId: string) {
-    const uploadPath = process.env.UPLOAD_PATH || './uploads';
-    const filePath = path.join(uploadPath, fileId);
+  async processAudio(
+    file: Express.Multer.File,
+    title?: string,
+    description?: string,
+  ) {
+    try {
+      // Create meeting record
+      const meeting = await this.prisma.meeting.create({
+        data: {
+          title: title || 'Untitled Audio Meeting',
+          description: description || null,
+        },
+      });
 
-    if (!fs.existsSync(filePath)) {
-      throw new Error('File not found');
+      // Convert audio to WAV format if needed
+      const audioPath = await this.convertAudioToWav(file.path);
+
+      // Store audio file using storage service
+      const storageService = this.storageFactory.getStorageService();
+      const audioFile = await storageService.upload(
+        {
+          ...file,
+          path: audioPath,
+          filename: path.basename(audioPath),
+        } as Express.Multer.File,
+        {
+          folder: 'audio',
+          metadata: { meetingId: meeting.id, type: 'audio' },
+        },
+      );
+
+      this.logger.log(
+        `Audio processed successfully. Meeting ID: ${meeting.id}`,
+      );
+
+      return {
+        meetingId: meeting.id,
+        fileId: audioFile.filename,
+        originalName: file.originalname,
+        audioPath: audioFile.path,
+        audioUrl: audioFile.url,
+        message: 'Audio uploaded and processed successfully',
+      };
+    } catch (error) {
+      this.logger.error('Error processing audio:', error);
+      throw error;
+    }
+  }
+
+  private async convertAudioToWav(audioPath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const wavPath = audioPath.replace(/\.[^/.]+$/, '.wav');
+
+      // If already WAV, just return the path
+      if (audioPath.toLowerCase().endsWith('.wav')) {
+        resolve(audioPath);
+        return;
+      }
+
+      ffmpeg(audioPath)
+        .toFormat('wav')
+        .audioChannels(1)
+        .audioFrequency(16000)
+        .on('end', () => {
+          this.logger.log(`Audio converted to WAV: ${wavPath}`);
+          resolve(wavPath);
+        })
+        .on('error', (err) => {
+          this.logger.error('Error converting audio to WAV:', err);
+          reject(err);
+        })
+        .save(wavPath);
+    });
+  }
+
+  async getFileInfo(fileId: string) {
+    const storageService = this.storageFactory.getStorageService();
+
+    // Try to find the file in different folders
+    const folders = ['videos', 'audio', 'files'];
+
+    for (const folder of folders) {
+      const filePath = `${folder}/${fileId}`;
+      if (await storageService.exists(filePath)) {
+        const url = await storageService.getUrl(filePath);
+        return {
+          fileId,
+          path: filePath,
+          url,
+          exists: true,
+        };
+      }
     }
 
-    const stats = fs.statSync(filePath);
-    return {
-      fileId,
-      path: filePath,
-      size: stats.size,
-      created: stats.birthtime,
-    };
+    throw new Error('File not found');
   }
 }

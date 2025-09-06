@@ -1,73 +1,346 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# Notulenize API Documentation
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS-based API for video and audio meeting transcription and summarization with flexible storage support.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- Upload video files and extract audio
+- Upload audio files directly
+- Generate transcripts from audio files
+- Create AI-powered meeting summaries
+- Retrieve meeting results and transcripts
+- Flexible storage: Local filesystem or Supabase Storage
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Setup
 
-## Installation
+### Prerequisites
+
+- Node.js (v18 or higher)
+- PostgreSQL database
+- FFmpeg installed on your system
+- Supabase project (optional, for cloud storage)
+
+### Installation
+
+1. Install dependencies:
 
 ```bash
-$ pnpm install
+pnpm install
 ```
 
-## Running the app
+2. Set up environment variables:
 
 ```bash
-# development
-$ pnpm run start
+# Database configuration
+DATABASE_URL="postgresql://username:password@localhost:5432/notulenize_db?schema=public"
 
-# watch mode
-$ pnpm run start:dev
+# File upload settings
+UPLOAD_PATH="./uploads"
+MAX_FILE_SIZE=100000000
+FFMPEG_PATH="ffmpeg"
 
-# production mode
-$ pnpm run start:prod
+# Storage configuration
+STORAGE_PROVIDER=local  # or 'supabase' for cloud storage
+STORAGE_BASE_URL=http://localhost:3000
+
+# Supabase configuration (only needed if using Supabase)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_BUCKET=notulenize-files
 ```
 
-## Test
+3. Set up the database:
 
 ```bash
-# unit tests
-$ pnpm run test
+# Generate Prisma client
+npx prisma generate
 
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+# Run database migrations
+npx prisma migrate dev --name init
 ```
 
-## Support
+4. Start the application:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+# Development mode
+pnpm run start:dev
 
-## Stay in touch
+# Production mode
+pnpm run build
+pnpm run start:prod
+```
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Storage Configuration
 
-## License
+The API supports two storage providers:
 
-Nest is [MIT licensed](LICENSE).
+### Local Storage (Default)
+
+- Files are stored in the local filesystem
+- Set `STORAGE_PROVIDER=local`
+- Configure `UPLOAD_PATH` for the storage directory
+- Set `STORAGE_BASE_URL` for public file URLs
+
+### Supabase Storage
+
+- Files are stored in a Supabase Storage bucket
+- Set `STORAGE_PROVIDER=supabase`
+- Configure Supabase credentials and bucket settings
+- Files are organized in folders: `videos/`, `audio/`, `files/`
+
+## API Endpoints
+
+### Upload Module
+
+#### POST /api/upload/video
+
+Upload a video file and extract audio.
+
+**Request:**
+
+- Content-Type: `multipart/form-data`
+- Body:
+  - `file`: Video file (required)
+  - `title`: Meeting title (optional)
+  - `description`: Meeting description (optional)
+
+**Response:**
+
+```json
+{
+  "meetingId": "string",
+  "fileId": "string",
+  "originalName": "string",
+  "videoPath": "string",
+  "audioPath": "string",
+  "videoUrl": "string",
+  "audioUrl": "string",
+  "message": "Video uploaded and audio extracted successfully"
+}
+```
+
+#### POST /api/upload/audio
+
+Upload an audio file directly.
+
+**Request:**
+
+- Content-Type: `multipart/form-data`
+- Body:
+  - `file`: Audio file (required)
+  - `title`: Meeting title (optional)
+  - `description`: Meeting description (optional)
+
+**Supported Audio Formats:**
+
+- MP3 (audio/mp3, audio/mpeg)
+- WAV (audio/wav)
+- M4A (audio/m4a)
+- AAC (audio/aac)
+- OGG (audio/ogg)
+- FLAC (audio/flac)
+- WebM Audio (audio/webm)
+
+**Response:**
+
+```json
+{
+  "meetingId": "string",
+  "fileId": "string",
+  "originalName": "string",
+  "audioPath": "string",
+  "audioUrl": "string",
+  "message": "Audio uploaded and processed successfully"
+}
+```
+
+### Transcript Module
+
+#### POST /api/transcribe/:fileId
+
+Generate transcript from audio file.
+
+**Request:**
+
+- Body:
+  - `meetingId`: Meeting ID (required)
+  - `language`: Language code (optional, default: "en")
+
+**Response:**
+
+```json
+{
+  "transcriptId": "string",
+  "meetingId": "string",
+  "content": "string",
+  "language": "string",
+  "duration": "number",
+  "message": "Audio transcribed successfully"
+}
+```
+
+### Summary Module
+
+#### POST /api/summarize/:transcriptId
+
+Generate AI summary from transcript.
+
+**Request:**
+
+- No body required
+
+**Response:**
+
+```json
+{
+  "summaryId": "string",
+  "meetingId": "string",
+  "transcriptId": "string",
+  "content": "string",
+  "keyPoints": ["string"],
+  "actionItems": ["string"],
+  "participants": ["string"],
+  "duration": "number",
+  "message": "Summary generated successfully"
+}
+```
+
+### Results Module
+
+#### GET /api/results
+
+Get all meetings.
+
+**Response:**
+
+```json
+{
+  "meetings": [
+    {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "createdAt": "string",
+      "updatedAt": "string",
+      "transcriptCount": "number",
+      "summaryCount": "number",
+      "hasTranscripts": "boolean",
+      "hasSummaries": "boolean"
+    }
+  ],
+  "message": "All meetings retrieved successfully"
+}
+```
+
+#### GET /api/results/:meetingId
+
+Get specific meeting results with transcripts and summaries.
+
+**Response:**
+
+```json
+{
+  "meeting": {
+    "id": "string",
+    "title": "string",
+    "description": "string",
+    "createdAt": "string",
+    "updatedAt": "string"
+  },
+  "transcripts": [
+    {
+      "id": "string",
+      "content": "string",
+      "language": "string",
+      "duration": "number",
+      "createdAt": "string",
+      "updatedAt": "string"
+    }
+  ],
+  "summaries": [
+    {
+      "id": "string",
+      "content": "string",
+      "keyPoints": ["string"],
+      "actionItems": ["string"],
+      "participants": ["string"],
+      "duration": "number",
+      "createdAt": "string",
+      "updatedAt": "string",
+      "transcript": {
+        "id": "string",
+        "content": "string",
+        "language": "string",
+        "duration": "number"
+      }
+    }
+  ],
+  "message": "Meeting results retrieved successfully"
+}
+```
+
+## Usage Examples
+
+### 1. Upload a video file:
+
+```bash
+curl -X POST http://localhost:3000/api/upload/video \
+  -F "file=@meeting.mp4" \
+  -F "title=Weekly Team Meeting" \
+  -F "description=Discussion about project progress"
+```
+
+### 2. Upload an audio file directly:
+
+```bash
+curl -X POST http://localhost:3000/api/upload/audio \
+  -F "file=@meeting.mp3" \
+  -F "title=Audio Recording" \
+  -F "description=Team discussion"
+```
+
+### 3. Generate transcript:
+
+```bash
+curl -X POST http://localhost:3000/api/transcribe/audio-1234567890-123456789.mp3 \
+  -H "Content-Type: application/json" \
+  -d '{"meetingId": "meeting-id-from-upload"}'
+```
+
+### 4. Generate summary:
+
+```bash
+curl -X POST http://localhost:3000/api/summarize/transcript-id
+```
+
+### 5. Get results:
+
+```bash
+curl http://localhost:3000/api/results/meeting-id
+```
+
+## Storage Migration
+
+To switch from local storage to Supabase:
+
+1. Set up your Supabase project and create a storage bucket
+2. Update environment variables:
+   ```bash
+   STORAGE_PROVIDER=supabase
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_ANON_KEY=your-anon-key
+   SUPABASE_BUCKET=notulenize-files
+   ```
+3. Restart your application
+
+The API will automatically use Supabase for all new uploads. Existing local files will remain accessible.
+
+## Notes
+
+- The current implementation uses mock data for transcription and summarization
+- For production use, integrate with real speech-to-text and AI services
+- Ensure FFmpeg is properly installed and accessible in your system PATH
+- Supported video formats: MP4, AVI, MOV, WMV, FLV, WebM, MKV
+- Supported audio formats: MP3, WAV, M4A, AAC, OGG, FLAC, WebM Audio
+- Audio files are automatically converted to WAV format for processing
+- Files are organized in folders: `videos/`, `audio/`, `files/`
