@@ -3,15 +3,18 @@ import {
   StorageService,
   StorageFile,
   UploadOptions,
+  StreamUploadOptions,
 } from '../interfaces/storage.interface';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
+import { pipeline } from 'stream/promises';
 
 const mkdir = promisify(fs.mkdir);
 const copyFile = promisify(fs.copyFile);
 const unlink = promisify(fs.unlink);
 const access = promisify(fs.access);
+const stat = promisify(fs.stat);
 
 @Injectable()
 export class LocalStorageService implements StorageService {
@@ -71,6 +74,53 @@ export class LocalStorageService implements StorageService {
     }
   }
 
+  async uploadStream(
+    stream: NodeJS.ReadableStream,
+    filename: string,
+    options: StreamUploadOptions = {},
+  ): Promise<StorageFile> {
+    try {
+      // Initialize directories if needed
+      await this.initialize();
+
+      const folder = options.folder || 'files';
+      const folderPath = path.join(this.uploadPath, folder);
+
+      // Ensure folder exists
+      await this.ensureDirectoryExists(folderPath);
+
+      const destinationPath = path.join(folderPath, filename);
+      const relativePath = path.join(folder, filename);
+
+      // Create write stream and pipe input stream to it
+      const writeStream = fs.createWriteStream(destinationPath);
+
+      // Use pipeline for proper error handling and stream cleanup
+      await pipeline(stream, writeStream);
+
+      // Get file stats after upload
+      const stats = await stat(destinationPath);
+
+      const contentType = options.contentType || this.getMimeType(filename);
+
+      const storageFile: StorageFile = {
+        filename,
+        originalName: filename,
+        mimetype: contentType,
+        size: stats.size,
+        path: relativePath,
+        url: this.getPublicUrl(relativePath),
+        metadata: options.metadata,
+      };
+
+      this.logger.log(`Stream uploaded: ${relativePath} (${stats.size} bytes)`);
+      return storageFile;
+    } catch (error) {
+      this.logger.error('Error uploading stream:', error);
+      throw error;
+    }
+  }
+
   async download(filePath: string): Promise<Buffer> {
     try {
       const fullPath = path.join(this.uploadPath, filePath);
@@ -121,7 +171,7 @@ export class LocalStorageService implements StorageService {
 
       await copyFile(sourceFullPath, destFullPath);
 
-      const stats = fs.statSync(destFullPath);
+      const stats = await stat(destFullPath);
       const storageFile: StorageFile = {
         filename: path.basename(destinationPath),
         originalName: path.basename(destinationPath),
@@ -149,20 +199,27 @@ export class LocalStorageService implements StorageService {
         : this.uploadPath;
       const files = fs.readdirSync(folderPath);
 
-      return files.map((filename) => {
+      const storageFiles: StorageFile[] = [];
+
+      for (const filename of files) {
         const filePath = folder ? path.join(folder, filename) : filename;
         const fullPath = path.join(folderPath, filename);
-        const stats = fs.statSync(fullPath);
+        const stats = await stat(fullPath);
 
-        return {
-          filename,
-          originalName: filename,
-          mimetype: this.getMimeType(filename),
-          size: stats.size,
-          path: filePath,
-          url: this.getPublicUrl(filePath),
-        };
-      });
+        // Skip directories
+        if (stats.isFile()) {
+          storageFiles.push({
+            filename,
+            originalName: filename,
+            mimetype: this.getMimeType(filename),
+            size: stats.size,
+            path: filePath,
+            url: this.getPublicUrl(filePath),
+          });
+        }
+      }
+
+      return storageFiles;
     } catch (error) {
       this.logger.error(`Error listing files in ${folder || 'root'}:`, error);
       return [];

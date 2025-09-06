@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import {
   StorageFile,
   StorageService,
+  StreamUploadOptions,
   UploadOptions,
 } from '../interfaces/storage.interface';
 
@@ -71,6 +72,64 @@ export class SupabaseStorageService implements StorageService {
     }
   }
 
+  async uploadStream(
+    stream: NodeJS.ReadableStream,
+    filename: string,
+    options: StreamUploadOptions = {},
+  ): Promise<StorageFile> {
+    try {
+      const folder = options.folder || 'files';
+      const filePath = `${folder}/${filename}`;
+
+      // Convert stream to buffer for Supabase
+      // Note: This loads the entire stream into memory
+      const chunks: Uint8Array[] = [];
+      let totalSize = 0;
+
+      // Handle the stream data
+      for await (const chunk of stream as any) {
+        chunks.push(chunk);
+        totalSize += chunk.length;
+      }
+
+      const buffer = Buffer.concat(chunks);
+      const contentType = options.contentType || this.getMimeType(filename);
+
+      const { error } = await this.supabase.storage
+        .from(this.bucket)
+        .upload(filePath, buffer, {
+          contentType,
+          metadata: options.metadata || {},
+        });
+
+      if (error) {
+        throw new Error(`Supabase stream upload error: ${error.message}`);
+      }
+
+      const { data: publicUrlData } = this.supabase.storage
+        .from(this.bucket)
+        .getPublicUrl(filePath);
+
+      const storageFile: StorageFile = {
+        filename,
+        originalName: filename,
+        mimetype: contentType,
+        size: totalSize,
+        path: filePath,
+        url: publicUrlData.publicUrl,
+        metadata: options.metadata,
+      };
+
+      this.logger.log(
+        `Stream uploaded to Supabase: ${filePath} (${totalSize} bytes)`,
+      );
+      return storageFile;
+    } catch (error) {
+      this.logger.error('Error uploading stream to Supabase:', error);
+      throw error;
+    }
+  }
+
   async download(filePath: string): Promise<Buffer> {
     try {
       const { data, error } = await this.supabase.storage
@@ -116,10 +175,14 @@ export class SupabaseStorageService implements StorageService {
 
   async exists(filePath: string): Promise<boolean> {
     try {
+      const pathParts = filePath.split('/');
+      const fileName = pathParts.pop();
+      const folderPath = pathParts.join('/');
+
       const { data, error } = await this.supabase.storage
         .from(this.bucket)
-        .list(filePath.split('/').slice(0, -1).join('/'), {
-          search: filePath.split('/').pop(),
+        .list(folderPath || '', {
+          search: fileName,
         });
 
       if (error) {
@@ -217,7 +280,8 @@ export class SupabaseStorageService implements StorageService {
       const files: StorageFile[] = [];
 
       for (const item of data) {
-        if (item.name) {
+        if (item.name && !item.id) {
+          // Skip folders (they have id property)
           const filePath = folder ? `${folder}/${item.name}` : item.name;
           const { data: publicUrlData } = this.supabase.storage
             .from(this.bucket)
@@ -230,6 +294,7 @@ export class SupabaseStorageService implements StorageService {
             size: item.metadata?.size || 0,
             path: filePath,
             url: publicUrlData.publicUrl,
+            metadata: item.metadata,
           });
         }
       }

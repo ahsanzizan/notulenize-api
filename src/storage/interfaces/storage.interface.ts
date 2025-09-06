@@ -15,10 +15,22 @@ export interface UploadOptions {
   public?: boolean;
 }
 
+export interface StreamUploadOptions {
+  folder?: string;
+  contentType?: string;
+  metadata?: Record<string, any>;
+}
+
 export interface StorageService {
   upload(
     file: Express.Multer.File,
     options?: UploadOptions,
+  ): Promise<StorageFile>;
+
+  uploadStream(
+    stream: NodeJS.ReadableStream,
+    filename: string,
+    options?: StreamUploadOptions,
   ): Promise<StorageFile>;
 
   download(path: string): Promise<Buffer>;
