@@ -10,48 +10,96 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Meeting {
-  id          String   @id @default(cuid())
-  title       String?
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+enum UploadStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
 
-  // Relations
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  meetings       Meeting[]
+  uploadSessions UploadSession[]
+
+  @@map("users")
+}
+
+model Meeting {
+  id           String   @id @default(cuid())
+  title        String
+  audioFileUrl String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   transcripts Transcript[]
-  summaries   Summary[]
+  Summary     Summary[]
 
   @@map("meetings")
 }
 
 model Transcript {
   id        String   @id @default(cuid())
-  content   String
-  language  String?  @default("en")
-  duration  Int? // in seconds
+  fullText  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  meetingId String
+  meetingId String  @unique
   meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
-  summaries Summary[]
+  chunks  TranscriptChunk[]
+  Summary Summary[]
 
   @@map("transcripts")
 }
 
-model Summary {
-  id           String   @id @default(cuid())
-  content      String
-  keyPoints    String[] // Array of key points
-  actionItems  String[] // Array of action items
-  participants String[] // Array of participant names
-  duration     Int? // in minutes
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+model TranscriptChunk {
+  id         String   @id @default(cuid())
+  chunkIndex Int
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
 
-  // Relations
+  transcriptId String
+  transcript   Transcript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+
+  @@unique([transcriptId, chunkIndex])
+  @@map("transcript_chunks")
+}
+
+model UploadSession {
+  id           String       @id @default(cuid())
+  status       UploadStatus @default(IN_PROGRESS)
+  filename     String?
+  fileType     String?
+  totalParts   Int?
+  errorMessage String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("upload_sessions")
+}
+
+model Summary {
+  id                String   @id @default(cuid())
+  content           String
+  keyPoints         String[]
+  actionItems       String[]
+  participants      String[]
+  durationInMinutes Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
   meetingId String
   meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
