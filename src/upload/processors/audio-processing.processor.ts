@@ -20,7 +20,8 @@ export class AudioProcessingProcessor {
 
   @Process('process-file')
   async processFile(job: Job<AudioProcessorJob>) {
-    const { uploadId, filePath, fileType, userId, filename } = job.data;
+    const { uploadId, filePath, fileType, userId, filename, meetingTitle } =
+      job.data;
 
     this.logger.log(`Processing file for upload ${uploadId}`);
 
@@ -46,7 +47,7 @@ export class AudioProcessingProcessor {
       // Create meeting record
       const meeting = await this.prisma.meeting.create({
         data: {
-          title: audioFilename,
+          title: meetingTitle || audioFilename,
           userId,
           audioFileUrl: supabaseResponse.publicUrl,
         },

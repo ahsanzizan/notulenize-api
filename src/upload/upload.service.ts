@@ -102,7 +102,7 @@ export class UploadService {
     }
   }
 
-  async completeUpload(uploadId: string) {
+  async completeUpload(uploadId: string, meetingTitle?: string) {
     const session = await this.getUploadSession(uploadId);
 
     if (session.status !== UploadStatus.IN_PROGRESS) {
@@ -132,6 +132,7 @@ export class UploadService {
         fileType: session.fileType,
         userId: session.userId,
         filename: session.filename,
+        meetingTitle,
       });
 
       this.logger.log(`Upload ${uploadId} completed and queued for processing`);

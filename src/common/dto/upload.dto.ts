@@ -1,4 +1,12 @@
-import { IsIn, IsNumber, IsString, IsUUID, Max, Min } from 'class-validator';
+import {
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class InitUploadDto {
   @IsString()
@@ -28,4 +36,10 @@ export class UploadPartDto {
   @IsNumber()
   @Min(0)
   partIndex: number;
+}
+
+export class CompleteUploadDto {
+  @IsString()
+  @IsOptional()
+  title: string;
 }

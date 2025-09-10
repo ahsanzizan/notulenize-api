@@ -11,7 +11,11 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { InitUploadDto, UploadPartDto } from '../common/dto/upload.dto';
+import {
+  CompleteUploadDto,
+  InitUploadDto,
+  UploadPartDto,
+} from '../common/dto/upload.dto';
 import { UploadService } from './upload.service';
 
 @Controller('upload')
@@ -42,8 +46,11 @@ export class UploadController {
   }
 
   @Post(':uploadId/complete')
-  async completeUpload(@Param('uploadId', ParseUUIDPipe) uploadId: string) {
+  async completeUpload(
+    @Param('uploadId', ParseUUIDPipe) uploadId: string,
+    @Body(ValidationPipe) dto: CompleteUploadDto,
+  ) {
     this.logger.log(`Completing upload ${uploadId}`);
-    return this.uploadService.completeUpload(uploadId);
+    return this.uploadService.completeUpload(uploadId, dto.title);
   }
 }
