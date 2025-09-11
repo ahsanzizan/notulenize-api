@@ -3,7 +3,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
   Max,
   Min,
 } from 'class-validator';
@@ -27,9 +26,6 @@ export class InitUploadDto {
   @Min(1)
   @Max(1000)
   totalParts: number;
-
-  @IsUUID()
-  userId: string;
 }
 
 export class UploadPartDto {

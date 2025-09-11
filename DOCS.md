@@ -6,7 +6,23 @@
 
 ## Authentication
 
-> **Note**: This API currently doesn't include authentication. In production, you should implement JWT or similar authentication mechanisms.
+This API uses JWT Bearer tokens.
+
+- Obtain a token via:
+  - `POST /api/v1/auth/register` — body: `{ "name", "email", "password" }`
+  - `POST /api/v1/auth/login` — body: `{ "email", "password" }`
+- Include the token in requests:
+  - Header: `Authorization: Bearer <token>`
+
+### Auth Endpoints
+
+- `POST /auth/register`
+  - Request: `{ "name": string, "email": string, "password": string(min 8) }`
+  - Response: `{ "accessToken": string }`
+
+- `POST /auth/login`
+  - Request: `{ "email": string, "password": string }`
+  - Response: `{ "accessToken": string }`
 
 ## Error Responses
 
@@ -38,7 +54,7 @@ All endpoints return standardized error responses:
 
 Start a new resumable upload session.
 
-**Endpoint**: `POST /upload/init`
+**Endpoint**: `POST /upload/init` (requires `Authorization: Bearer <token>`)
 
 **Request Body**:
 
@@ -46,8 +62,7 @@ Start a new resumable upload session.
 {
   "filename": "meeting-recording.mp4",
   "fileType": "video/mp4",
-  "totalParts": 10,
-  "userId": "user_123456789"
+  "totalParts": 10
 }
 ```
 

@@ -35,7 +35,7 @@ export class UploadService {
     }
   }
 
-  async initUpload(dto: InitUploadDto) {
+  async initUpload(dto: InitUploadDto & { userId: string }) {
     try {
       const uploadSession = await this.prisma.uploadSession.create({
         data: {
