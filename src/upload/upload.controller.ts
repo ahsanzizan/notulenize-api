@@ -7,8 +7,10 @@ import {
   Post,
   Put,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
   ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -17,6 +19,7 @@ import {
   UploadPartDto,
 } from '../common/dto/upload.dto';
 import { UploadService } from './upload.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('upload')
 export class UploadController {
@@ -24,12 +27,14 @@ export class UploadController {
 
   constructor(private readonly uploadService: UploadService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post('init')
-  async initUpload(@Body(ValidationPipe) dto: InitUploadDto) {
+  async initUpload(@Body(ValidationPipe) dto: InitUploadDto, @Req() req: any) {
     this.logger.log(`Initializing upload for file: ${dto.filename}`);
-    return this.uploadService.initUpload(dto);
+    return this.uploadService.initUpload({ ...dto, userId: req.user.userId });
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put(':uploadId/part')
   @UseInterceptors(FileInterceptor('chunk'))
   async uploadPart(
@@ -45,6 +50,7 @@ export class UploadController {
     return this.uploadService.uploadPart(uploadId, chunk, dto.partIndex);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':uploadId/complete')
   async completeUpload(
     @Param('uploadId', ParseUUIDPipe) uploadId: string,
