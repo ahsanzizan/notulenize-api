@@ -17,7 +17,7 @@ import {
   CompleteUploadDto,
   InitUploadDto,
   UploadPartDto,
-} from '../common/dto/upload.dto';
+} from './dto/upload.dto';
 import { UploadService } from './upload.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
