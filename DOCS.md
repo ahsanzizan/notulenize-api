@@ -71,7 +71,7 @@ Start a new resumable upload session.
 - `filename`: Required string
 - `fileType`: Must be one of: `audio/mpeg`, `audio/wav`, `audio/mp3`, `video/mp4`, `video/avi`, `video/mov`
 - `totalParts`: Number between 1-1000
-- `userId`: Valid UUID format
+- `userId`: Valid CUID format
 
 **Success Response** (200):
 
@@ -97,7 +97,7 @@ Upload a chunk of the file to temporary storage.
 
 **URL Parameters**:
 
-- `uploadId` - UUID of the upload session
+- `uploadId` - CUID of the upload session
 
 **Request**: `multipart/form-data`
 
@@ -140,7 +140,7 @@ Assemble all parts and trigger background processing.
 
 **URL Parameters**:
 
-- `uploadId` - UUID of the upload session
+- `uploadId` - CUID of the upload session
 
 **Request Body**: None
 
