@@ -4,13 +4,13 @@ import { UploadStatus } from '@prisma/client';
 import { Queue } from 'bull';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { InitUploadDto } from '../common/dto/upload.dto';
 import {
   FileProcessingException,
   InvalidUploadStatusException,
   UploadSessionNotFoundException,
 } from '../common/exceptions/upload.exceptions';
 import { PrismaService } from '../prisma/prisma.service';
+import { InitUploadDto } from './dto/upload.dto';
 import { AudioProcessorJob } from './processors/audio-processor.type';
 
 @Injectable()
