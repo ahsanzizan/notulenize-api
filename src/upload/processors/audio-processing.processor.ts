@@ -7,7 +7,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SupabaseService } from '../../supabase/supabase.service';
-import { AudioProcessorJob } from './audio-processor.type';
+import { AudioProcessorJob } from './types/audio-processor.type';
 
 @Processor('audio-processing')
 export class AudioProcessingProcessor {

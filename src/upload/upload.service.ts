@@ -11,7 +11,7 @@ import {
 } from '../common/exceptions/upload.exceptions';
 import { PrismaService } from '../prisma/prisma.service';
 import { InitUploadDto } from './dto/upload.dto';
-import { AudioProcessorJob } from './processors/audio-processor.type';
+import { AudioProcessorJob } from './processors/types/audio-processor.type';
 
 @Injectable()
 export class UploadService {
