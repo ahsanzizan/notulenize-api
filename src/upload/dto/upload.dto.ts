@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsIn,
   IsNumber,
@@ -29,6 +30,7 @@ export class InitUploadDto {
 }
 
 export class UploadPartDto {
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   partIndex: number;

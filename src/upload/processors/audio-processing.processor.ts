@@ -37,7 +37,9 @@ export class AudioProcessingProcessor {
       }
 
       // Upload audio to Supabase
-      this.logger.log(`Uploading audio to Supabase: ${audioFilename}`);
+      this.logger.log(
+        `Uploading audio to Supabase: ${audioFilePath} (${audioFilename})`,
+      );
       const audioBuffer = await fs.readFile(audioFilePath);
       const supabaseResponse = await this.supabase.uploadFile(
         audioFilename,
