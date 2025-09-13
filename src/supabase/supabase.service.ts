@@ -8,7 +8,11 @@ export class SupabaseService {
   private readonly supabase: SupabaseClient;
 
   constructor() {
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+    if (
+      !process.env.SUPABASE_URL ||
+      !process.env.SUPABASE_ANON_KEY ||
+      !process.env.SUPABASE_BUCKET
+    ) {
       throw new Error('Supabase configuration missing');
     }
 
@@ -31,7 +35,7 @@ export class SupabaseService {
       const uniqueFilename = `${Date.now()}-${filename}`;
 
       const { data, error } = await this.supabase.storage
-        .from('audio-files')
+        .from(process.env.SUPABASE_BUCKET)
         .upload(uniqueFilename, fileBuffer, {
           contentType: 'audio/mpeg',
           upsert: false,
@@ -43,7 +47,7 @@ export class SupabaseService {
       }
 
       const { data: publicUrlData } = this.supabase.storage
-        .from('audio-files')
+        .from(process.env.SUPABASE_BUCKET)
         .getPublicUrl(uniqueFilename);
 
       this.logger.log(`File uploaded successfully: ${uniqueFilename}`);
