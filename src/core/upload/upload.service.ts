@@ -1,15 +1,15 @@
+import {
+  FileProcessingException,
+  InvalidUploadStatusException,
+  UploadSessionNotFoundException,
+} from '@/common/exceptions/upload.exceptions';
+import { PrismaService } from '@/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
 import { UploadStatus } from '@prisma/client';
 import { Queue } from 'bull';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import {
-  FileProcessingException,
-  InvalidUploadStatusException,
-  UploadSessionNotFoundException,
-} from '../common/exceptions/upload.exceptions';
-import { PrismaService } from '../prisma/prisma.service';
 import { InitUploadDto } from './dto/upload.dto';
 import { AudioProcessorJob } from './processors/types/audio-processor.type';
 

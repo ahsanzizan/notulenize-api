@@ -1,6 +1,6 @@
+import { SupabaseUploadException } from '@/common/exceptions/upload.exceptions';
 import { Injectable, Logger } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { SupabaseUploadException } from '../common/exceptions/upload.exceptions';
 
 @Injectable()
 export class SupabaseService {

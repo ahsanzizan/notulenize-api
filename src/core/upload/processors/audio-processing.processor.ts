@@ -1,3 +1,5 @@
+import { PrismaService } from '@/prisma/prisma.service';
+import { SupabaseService } from '@/supabase/supabase.service';
 import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { UploadStatus } from '@prisma/client';
@@ -5,8 +7,6 @@ import { Job } from 'bull';
 import * as ffmpeg from 'fluent-ffmpeg';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { PrismaService } from '../../prisma/prisma.service';
-import { SupabaseService } from '../../supabase/supabase.service';
 import { AudioProcessorJob } from './types/audio-processor.type';
 
 @Processor('audio-processing')

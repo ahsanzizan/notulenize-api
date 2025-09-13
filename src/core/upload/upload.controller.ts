@@ -1,3 +1,5 @@
+import { ParseCUIDPipe } from '@/common/pipes/parse-cuid.pipe';
+import { JwtAuthGuard } from '@/core/auth/guards/jwt-auth.guard';
 import {
   Body,
   Controller,
@@ -12,8 +14,6 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ParseCUIDPipe } from 'src/common/pipes/parse-cuid.pipe';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   CompleteUploadDto,
   InitUploadDto,

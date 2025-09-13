@@ -1,9 +1,9 @@
+import { PrismaModule } from '@/prisma/prisma.module';
+import { SupabaseModule } from '@/supabase/supabase.module';
 import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import * as multer from 'multer';
-import { PrismaModule } from '../prisma/prisma.module';
-import { SupabaseModule } from '../supabase/supabase.module';
 import { AudioProcessingProcessor } from './processors/audio-processing.processor';
 import { UploadController } from './upload.controller';
 import { UploadService } from './upload.service';
