@@ -15,4 +15,6 @@ export class MeetingController {
 
     return this.meetingService.getMeetingWithTranscript(id);
   }
+
+  // TODO: Implement the get meetings by user (paginated)
 }
