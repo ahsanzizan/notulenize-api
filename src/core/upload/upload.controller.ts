@@ -1,5 +1,4 @@
 import { ParseCUIDPipe } from '@/common/pipes/parse-cuid.pipe';
-import { JwtAuthGuard } from '@/core/auth/guards/jwt-auth.guard';
 import {
   Body,
   Controller,
@@ -9,7 +8,6 @@ import {
   Put,
   Req,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
@@ -27,14 +25,15 @@ export class UploadController {
 
   constructor(private readonly uploadService: UploadService) {}
 
-  @UseGuards(JwtAuthGuard)
   @Post('init')
-  async initUpload(@Body(ValidationPipe) dto: InitUploadDto, @Req() req: any) {
+  async initUpload(
+    @Body(ValidationPipe) dto: InitUploadDto,
+    @Req() req: { user: { userId: string } },
+  ) {
     this.logger.log(`Initializing upload for file: ${dto.filename}`);
     return this.uploadService.initUpload({ ...dto, userId: req.user.userId });
   }
 
-  @UseGuards(JwtAuthGuard)
   @Put(':uploadId/part')
   @UseInterceptors(FileInterceptor('chunk'))
   async uploadPart(
@@ -50,7 +49,6 @@ export class UploadController {
     return this.uploadService.uploadPart(uploadId, chunk, dto.partIndex);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post(':uploadId/complete')
   async completeUpload(
     @Param('uploadId', ParseCUIDPipe) uploadId: string,
