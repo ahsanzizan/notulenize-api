@@ -39,11 +39,15 @@ export class UploadService {
     try {
       const uploadSession = await this.prisma.uploadSession.create({
         data: {
-          userId: dto.userId,
           filename: dto.filename,
           fileType: dto.fileType,
           totalParts: dto.totalParts,
           status: UploadStatus.IN_PROGRESS,
+          user: {
+            connect: {
+              id: dto.userId,
+            },
+          },
         },
       });
 

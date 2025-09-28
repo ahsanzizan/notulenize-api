@@ -6,12 +6,12 @@ import {
   Param,
   Post,
   Put,
-  Req,
   UploadedFile,
   UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { JwtUser, UseAuth } from '../auth/guards/jwt-auth.guard';
 import {
   CompleteUploadDto,
   InitUploadDto,
@@ -28,10 +28,10 @@ export class UploadController {
   @Post('init')
   async initUpload(
     @Body(ValidationPipe) dto: InitUploadDto,
-    @Req() req: { user: { userId: string } },
+    @UseAuth() user: JwtUser,
   ) {
     this.logger.log(`Initializing upload for file: ${dto.filename}`);
-    return this.uploadService.initUpload({ ...dto, userId: req.user.userId });
+    return this.uploadService.initUpload({ ...dto, userId: user.sub });
   }
 
   @Put(':uploadId/part')

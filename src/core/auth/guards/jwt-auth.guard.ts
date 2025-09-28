@@ -1,5 +1,6 @@
 import {
   CanActivate,
+  createParamDecorator,
   ExecutionContext,
   Injectable,
   SetMetadata,
@@ -11,6 +12,21 @@ import { Request } from 'express';
 
 export const IS_PUBLIC_KEY = 'isPublic';
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+
+export interface JwtUser {
+  sub: string;
+  email: string;
+  name: string;
+}
+
+export const UseAuth = createParamDecorator(
+  (data: string | undefined, context: ExecutionContext) => {
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+
+    return data ? user?.[data] : user;
+  },
+);
 
 @Injectable()
 export class AuthGuard implements CanActivate {

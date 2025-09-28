@@ -1,3 +1,4 @@
+import { AssemblyAIModule } from '@/assemblyai/assemblyai.module';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { SupabaseModule } from '@/supabase/supabase.module';
 import { BullModule } from '@nestjs/bull';
@@ -11,6 +12,7 @@ import { UploadService } from './upload.service';
 @Module({
   imports: [
     PrismaModule,
+    AssemblyAIModule,
     SupabaseModule,
     MulterModule.register({
       storage: multer.memoryStorage(),

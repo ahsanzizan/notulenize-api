@@ -8,6 +8,7 @@ import * as ffmpeg from 'fluent-ffmpeg';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { AudioProcessorJob } from './types/audio-processor.type';
+import { AssemblyAIService } from '@/assemblyai/assemblyai.service';
 
 @Processor('audio-processing')
 export class AudioProcessingProcessor {
@@ -16,6 +17,7 @@ export class AudioProcessingProcessor {
   constructor(
     private readonly prisma: PrismaService,
     private readonly supabase: SupabaseService,
+    private readonly assembly: AssemblyAIService,
   ) {}
 
   @Process('process-file')
@@ -46,19 +48,22 @@ export class AudioProcessingProcessor {
         audioBuffer,
       );
 
+      const audioFilePublicUrl = supabaseResponse.publicUrl;
+
       // Create meeting record
       const meeting = await this.prisma.meeting.create({
         data: {
           title: meetingTitle || audioFilename,
           userId,
-          audioFileUrl: supabaseResponse.publicUrl,
+          audioFileUrl: audioFilePublicUrl,
         },
       });
 
       this.logger.log(`Created meeting ${meeting.id}`);
 
-      // Mock transcription
-      const transcriptText = await this.mockTranscription(audioFilePath);
+      // Transcription
+      const transcriptText =
+        await this.generateTranscription(audioFilePublicUrl);
 
       // Create transcript
       const transcript = await this.prisma.transcript.create({
@@ -118,14 +123,17 @@ export class AudioProcessingProcessor {
     });
   }
 
-  private async mockTranscription(audioPath: string): Promise<string> {
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const stats = await fs.stat(audioPath);
-    const fileSize = Math.round(stats.size / 1024); // KB
-
-    return `This is a mock transcription of the audio file (${fileSize}KB). In a real implementation, this would be the actual transcribed text from a service like OpenAI Whisper, Google Speech-to-Text, or similar. The transcription would contain the actual spoken content from the audio file.`;
+  private async generateTranscription(audioFileUrl: string): Promise<string> {
+    try {
+      this.logger.log('Starting transcription via AssemblyAIService');
+      const text = await this.assembly.transcribeFromUrl(audioFileUrl);
+      this.logger.log('Transcription completed with AssemblyAI');
+      return text;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(`AssemblyAI transcription error: ${message}`);
+      throw err;
+    }
   }
 
   private async chunkTranscript(transcriptId: string, fullText: string) {
